@@ -1,0 +1,26 @@
+name: chat_poll_kit
+description: A complete poll system for chat applications with state management, real-time sync, backend abstraction, and deep theming.
+version: 1.0.0
+homepage: https://github.com/Amin11511/chat_poll_kit
+repository: https://github.com/Amin11511/chat_poll_kit
+
+environment:
+  sdk: ^3.10.8
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  uuid: ^4.2.1
+  cloud_firestore: ^5.6.7
+  firebase_core: ^3.12.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+  fake_cloud_firestore: ^3.1.0
+
+flutter:
