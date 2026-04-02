@@ -2,6 +2,12 @@
 
 A complete poll system for Flutter chat applications — with state management, real-time sync, backend abstraction (Firebase + REST/Dio), deep theming, and animated UI.
 
+## Screenshots
+
+| Light Theme | Dark Theme | Green Custom | Purple Custom |
+|:-----------:|:----------:|:------------:|:-------------:|
+| ![Light](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/1_light_theme.png) | ![Dark](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/2_dark_theme.png) | ![Green](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/3_green_theme.png) | ![Purple](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/4_purple_theme.png) |
+
 ## Features
 
 - **Immutable models** — `PollModel`, `PollOption`, `VoteModel` with `copyWith` and JSON serialization
