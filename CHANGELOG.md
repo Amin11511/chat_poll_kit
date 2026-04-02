@@ -1,3 +1,8 @@
+## 1.0.1
+
+* Add screenshots to README (Light, Dark, Green, Purple themes)
+* Update example app with 4 themed demo pages
+
 ## 1.0.0
 
 * Initial release
