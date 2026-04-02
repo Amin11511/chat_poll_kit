@@ -1,6 +1,6 @@
 name: chat_poll_kit
 description: A complete poll system for chat applications with state management, real-time sync, backend abstraction, and deep theming.
-version: 1.0.1
+version: 1.0.2
 homepage: https://github.com/Amin11511/chat_poll_kit
 repository: https://github.com/Amin11511/chat_poll_kit
 

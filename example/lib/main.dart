@@ -4,7 +4,7 @@ import 'package:chat_poll_kit/chat_poll_kit.dart';
 import 'package:flutter/material.dart';
 
 // ---------------------------------------------------------------------------
-// Mock adapter for demo (no backend needed)
+// Mock adapter
 // ---------------------------------------------------------------------------
 class MockPollAdapter implements PollDataSource {
   final Map<String, PollModel> _polls = {};
@@ -31,14 +31,10 @@ class MockPollAdapter implements PollDataSource {
     _controllers[pollId]?.close();
     final controller = StreamController<PollModel>();
     _controllers[pollId] = controller;
-
     Future<void>.delayed(const Duration(milliseconds: 200)).then((_) {
       final poll = _polls[pollId];
-      if (poll != null && !controller.isClosed) {
-        controller.add(poll);
-      }
+      if (poll != null && !controller.isClosed) controller.add(poll);
     });
-
     return controller.stream;
   }
 
@@ -51,26 +47,23 @@ class MockPollAdapter implements PollDataSource {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     final poll = _polls[pollId];
     if (poll == null) throw Exception('Poll not found');
-
     final updated = poll.copyWith(
       options: poll.options.map((o) {
-        if (optionIds.contains(o.id)) {
-          return o.copyWith(votes: o.votes + 1);
-        }
+        if (optionIds.contains(o.id)) return o.copyWith(votes: o.votes + 1);
         return o;
       }).toList(),
     );
     _polls[pollId] = updated;
-
-    final vote = VoteModel(
-      id: 'vote_${DateTime.now().millisecondsSinceEpoch}',
-      pollId: pollId,
-      userId: userId,
-      optionIds: optionIds,
-      votedAt: DateTime.now(),
-    );
-    _votes[pollId] = [...(_votes[pollId] ?? []), vote];
-
+    _votes[pollId] = [
+      ...(_votes[pollId] ?? []),
+      VoteModel(
+        id: 'vote_${DateTime.now().millisecondsSinceEpoch}',
+        pollId: pollId,
+        userId: userId,
+        optionIds: optionIds,
+        votedAt: DateTime.now(),
+      ),
+    ];
     _controllers[pollId]?.add(updated);
   }
 
@@ -79,8 +72,7 @@ class MockPollAdapter implements PollDataSource {
     required String pollId,
     required String userId,
   }) async {
-    final votes = _votes[pollId] ?? [];
-    return votes.any((v) => v.userId == userId);
+    return (_votes[pollId] ?? []).any((v) => v.userId == userId);
   }
 
   @override
@@ -88,148 +80,122 @@ class MockPollAdapter implements PollDataSource {
     required String pollId,
     required String userId,
   }) async {
-    final votes = _votes[pollId] ?? [];
-    return votes.where((v) => v.userId == userId).toList();
+    return (_votes[pollId] ?? []).where((v) => v.userId == userId).toList();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Chat message model
+// ---------------------------------------------------------------------------
+enum MessageType { text, poll }
+enum MessageSender { me, other }
+
+class ChatMessage {
+  final String id;
+  final MessageType type;
+  final MessageSender sender;
+  final String senderName;
+  final String? text;
+  final String? pollId;
+  final String time;
+
+  const ChatMessage({
+    required this.id,
+    required this.type,
+    required this.sender,
+    required this.senderName,
+    this.text,
+    this.pollId,
+    required this.time,
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Sample data
 // ---------------------------------------------------------------------------
-final _singleChoicePoll = PollModel(
+final _poll1 = PollModel(
   id: 'poll_1',
-  question: 'What is your favourite programming language?',
+  question: 'What should we use for the backend?',
   options: const [
-    PollOption(id: 'opt_1', text: 'Dart', votes: 12),
-    PollOption(id: 'opt_2', text: 'Kotlin', votes: 8),
-    PollOption(id: 'opt_3', text: 'Swift', votes: 5),
-    PollOption(id: 'opt_4', text: 'TypeScript', votes: 15),
+    PollOption(id: 'a', text: 'Node.js', votes: 12),
+    PollOption(id: 'b', text: 'Go', votes: 8),
+    PollOption(id: 'c', text: 'Python (Django)', votes: 15),
+    PollOption(id: 'd', text: 'Dart (Shelf)', votes: 5),
   ],
-  createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-  expiresAt: DateTime.now().add(const Duration(hours: 1)),
+  createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+  expiresAt: DateTime.now().add(const Duration(hours: 2)),
 );
 
-final _multiChoicePoll = PollModel(
+final _poll2 = PollModel(
   id: 'poll_2',
-  question: 'Which tools do you use daily? (select all)',
+  question: 'When should we schedule the sprint review?',
   options: const [
-    PollOption(id: 'opt_a', text: 'VS Code', votes: 22),
-    PollOption(id: 'opt_b', text: 'Android Studio', votes: 14),
-    PollOption(id: 'opt_c', text: 'Xcode', votes: 7),
-    PollOption(id: 'opt_d', text: 'Terminal / CLI', votes: 18),
+    PollOption(id: 'mon', text: 'Monday 10 AM', votes: 6),
+    PollOption(id: 'wed', text: 'Wednesday 2 PM', votes: 9),
+    PollOption(id: 'fri', text: 'Friday 11 AM', votes: 4),
   ],
-  allowMultipleChoices: true,
-  createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+  createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+  expiresAt: DateTime.now().subtract(const Duration(minutes: 10)),
 );
 
-final _expiredPoll = PollModel(
-  id: 'poll_3',
-  question: 'Should we adopt Flutter for the new project?',
-  options: const [
-    PollOption(id: 'opt_yes', text: 'Yes', votes: 31),
-    PollOption(id: 'opt_no', text: 'No', votes: 9),
-    PollOption(id: 'opt_maybe', text: 'Maybe later', votes: 4),
-  ],
-  createdAt: DateTime.now().subtract(const Duration(days: 2)),
-  expiresAt: DateTime.now().subtract(const Duration(hours: 1)),
-);
-
-final _votedPoll = PollModel(
-  id: 'poll_4',
-  question: 'Best state management for Flutter?',
-  options: const [
-    PollOption(id: 'opt_bloc', text: 'BLoC / Cubit', votes: 45),
-    PollOption(id: 'opt_riverpod', text: 'Riverpod', votes: 38),
-    PollOption(id: 'opt_provider', text: 'Provider', votes: 22),
-    PollOption(id: 'opt_getx', text: 'GetX', votes: 15),
-  ],
-  createdAt: DateTime.now().subtract(const Duration(hours: 10)),
-);
-
-// ---------------------------------------------------------------------------
-// Custom Themes
-// ---------------------------------------------------------------------------
-final _greenTheme = PollTheme.light().copyWith(
-  backgroundColor: const Color(0xFFF1F8E9),
-  questionColor: const Color(0xFF1B5E20),
-  optionTextColor: const Color(0xFF2E7D32),
-  optionBackgroundColor: const Color(0xFFE8F5E9),
-  optionSelectedColor: const Color(0xFFC8E6C9),
-  progressBarColor: const Color(0xFF43A047),
-  progressBarBackgroundColor: const Color(0xFFDCEDC8),
-  percentageColor: const Color(0xFF558B2F),
-  checkIconColor: const Color(0xFF43A047),
-  footerTextColor: const Color(0xFF689F38),
-  countdownColor: const Color(0xFFE65100),
-  containerBorderRadius: BorderRadius.circular(16),
-  optionBorderRadius: BorderRadius.circular(12),
-  progressBarHeight: 8,
-  questionTextStyle: const TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF1B5E20),
+final _chatMessages = <ChatMessage>[
+  const ChatMessage(
+    id: 'm1',
+    type: MessageType.text,
+    sender: MessageSender.other,
+    senderName: 'Ahmed',
+    text: 'Hey team! We need to decide on the tech stack for the new project.',
+    time: '10:30 AM',
   ),
-  optionTextStyle: const TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: Color(0xFF2E7D32),
+  const ChatMessage(
+    id: 'm2',
+    type: MessageType.text,
+    sender: MessageSender.me,
+    senderName: 'You',
+    text: 'Good idea! Let\'s create a poll so everyone can vote.',
+    time: '10:31 AM',
   ),
-);
-
-final _purpleTheme = PollTheme.light().copyWith(
-  backgroundColor: const Color(0xFFF3E5F5),
-  questionColor: const Color(0xFF4A148C),
-  optionTextColor: const Color(0xFF6A1B9A),
-  optionBackgroundColor: const Color(0xFFE1BEE7),
-  optionSelectedColor: const Color(0xFFCE93D8),
-  progressBarColor: const Color(0xFF8E24AA),
-  progressBarBackgroundColor: const Color(0xFFE1BEE7),
-  percentageColor: const Color(0xFF7B1FA2),
-  checkIconColor: const Color(0xFF8E24AA),
-  footerTextColor: const Color(0xFF9C27B0),
-  countdownColor: const Color(0xFFFF6F00),
-  containerBorderRadius: BorderRadius.circular(20),
-  optionBorderRadius: BorderRadius.circular(14),
-  progressBarHeight: 7,
-  optionSpacing: 10,
-  questionTextStyle: const TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF4A148C),
+  const ChatMessage(
+    id: 'm3',
+    type: MessageType.poll,
+    sender: MessageSender.other,
+    senderName: 'Ahmed',
+    pollId: 'poll_1',
+    time: '10:32 AM',
   ),
-  optionTextStyle: const TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: Color(0xFF6A1B9A),
+  const ChatMessage(
+    id: 'm4',
+    type: MessageType.text,
+    sender: MessageSender.me,
+    senderName: 'You',
+    text: 'Great poll! I\'ll vote now 👍',
+    time: '10:33 AM',
   ),
-);
-
-final _orangeTheme = PollTheme.light().copyWith(
-  backgroundColor: const Color(0xFFFFF3E0),
-  questionColor: const Color(0xFFE65100),
-  optionTextColor: const Color(0xFFBF360C),
-  optionBackgroundColor: const Color(0xFFFFE0B2),
-  optionSelectedColor: const Color(0xFFFFCC80),
-  progressBarColor: const Color(0xFFF57C00),
-  progressBarBackgroundColor: const Color(0xFFFFE0B2),
-  percentageColor: const Color(0xFFE65100),
-  checkIconColor: const Color(0xFFF57C00),
-  footerTextColor: const Color(0xFFFF8F00),
-  countdownColor: const Color(0xFFD84315),
-  containerBorderRadius: BorderRadius.circular(14),
-  optionBorderRadius: BorderRadius.circular(10),
-  progressBarHeight: 6,
-  questionTextStyle: const TextStyle(
-    fontSize: 17,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFFE65100),
+  const ChatMessage(
+    id: 'm5',
+    type: MessageType.text,
+    sender: MessageSender.other,
+    senderName: 'Sara',
+    text: 'Also, here\'s the expired poll from last week about the sprint review:',
+    time: '10:35 AM',
   ),
-  optionTextStyle: const TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: Color(0xFFBF360C),
+  const ChatMessage(
+    id: 'm6',
+    type: MessageType.poll,
+    sender: MessageSender.other,
+    senderName: 'Sara',
+    pollId: 'poll_2',
+    time: '10:35 AM',
   ),
-);
+  const ChatMessage(
+    id: 'm7',
+    type: MessageType.text,
+    sender: MessageSender.other,
+    senderName: 'Ahmed',
+    text: 'Wednesday won! See you all at 2 PM 🎉',
+    time: '10:36 AM',
+  ),
+];
 
 // ---------------------------------------------------------------------------
 // App
@@ -238,8 +204,15 @@ void main() {
   runApp(const ChatPollExampleApp());
 }
 
-class ChatPollExampleApp extends StatelessWidget {
+class ChatPollExampleApp extends StatefulWidget {
   const ChatPollExampleApp({super.key});
+
+  @override
+  State<ChatPollExampleApp> createState() => _ChatPollExampleAppState();
+}
+
+class _ChatPollExampleAppState extends State<ChatPollExampleApp> {
+  bool _isDark = false;
 
   @override
   Widget build(BuildContext context) {
@@ -255,227 +228,260 @@ class ChatPollExampleApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF64B5F6),
         useMaterial3: true,
       ),
-      home: const ScreenshotDemoScreen(),
+      themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
+      home: ChatScreen(
+        isDark: _isDark,
+        onToggleTheme: () => setState(() => _isDark = !_isDark),
+      ),
     );
   }
 }
 
-class ScreenshotDemoScreen extends StatefulWidget {
-  const ScreenshotDemoScreen({super.key});
+// ---------------------------------------------------------------------------
+// Chat Screen
+// ---------------------------------------------------------------------------
+class ChatScreen extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onToggleTheme;
 
-  @override
-  State<ScreenshotDemoScreen> createState() => _ScreenshotDemoScreenState();
-}
+  ChatScreen({super.key, required this.isDark, required this.onToggleTheme});
 
-class _ScreenshotDemoScreenState extends State<ScreenshotDemoScreen> {
-  int _currentPage = 0;
-
-  List<PollModel> get _allPolls => [
-        _singleChoicePoll,
-        _multiChoicePoll,
-        _expiredPoll,
-        _votedPoll,
-      ];
-
-  late final _lightAdapter = MockPollAdapter(_allPolls);
-  late final _darkAdapter = MockPollAdapter(_allPolls);
-  late final _greenAdapter = MockPollAdapter(_allPolls);
-  late final _purpleAdapter = MockPollAdapter(_allPolls);
-
-  // Pre-vote poll_4 for the "voted" screenshot
-  late final _votedAdapter = MockPollAdapter([_votedPoll])
-    ..submitVote(
-      pollId: 'poll_4',
-      userId: 'user_demo',
-      optionIds: ['opt_bloc'],
-    );
-
-  final _pageTitles = [
-    'Light Theme',
-    'Dark Theme',
-    'Green Custom',
-    'Purple Custom',
-  ];
+  late final _adapter = MockPollAdapter([_poll1, _poll2]);
 
   @override
   Widget build(BuildContext context) {
+    final pollTheme = isDark ? PollTheme.dark() : PollTheme.light();
+    final bgColor = isDark ? const Color(0xFF0B141A) : const Color(0xFFECE5DD);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('chat_poll_kit — ${_pageTitles[_currentPage]}'),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: IndexedStack(
-        index: _currentPage,
-        children: [
-          _buildLightPage(),
-          _buildDarkPage(),
-          _buildGreenPage(),
-          _buildPurplePage(),
+        leading: const Padding(
+          padding: EdgeInsets.all(8),
+          child: CircleAvatar(
+            backgroundColor: Color(0xFF25D366),
+            child: Icon(Icons.group, color: Colors.white, size: 20),
+          ),
+        ),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Dev Team', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            Text('Ahmed, Sara, You', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: onToggleTheme,
+          ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentPage,
-        onDestinationSelected: (i) => setState(() => _currentPage = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.light_mode), label: 'Light'),
-          NavigationDestination(icon: Icon(Icons.dark_mode), label: 'Dark'),
-          NavigationDestination(icon: Icon(Icons.eco), label: 'Green'),
-          NavigationDestination(
-              icon: Icon(Icons.color_lens), label: 'Purple'),
+      body: Container(
+        color: bgColor,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                itemCount: _chatMessages.length,
+                itemBuilder: (context, index) {
+                  final msg = _chatMessages[index];
+                  return _buildMessage(context, msg, pollTheme);
+                },
+              ),
+            ),
+            _buildInputBar(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessage(BuildContext context, ChatMessage msg, PollTheme pollTheme) {
+    final isMe = msg.sender == MessageSender.me;
+    final bubbleColor = isMe
+        ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFDCF8C6))
+        : (isDark ? const Color(0xFF1F2C34) : Colors.white);
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final nameColor = isMe
+        ? const Color(0xFF075E54)
+        : const Color(0xFF6C63FF);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMe) ...[
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: nameColor.withValues(alpha: 0.2),
+              child: Text(
+                msg.senderName[0],
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: nameColor),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.78,
+              ),
+              decoration: BoxDecoration(
+                color: msg.type == MessageType.poll ? Colors.transparent : bubbleColor,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(12),
+                  topRight: const Radius.circular(12),
+                  bottomLeft: Radius.circular(isMe ? 12 : 2),
+                  bottomRight: Radius.circular(isMe ? 2 : 12),
+                ),
+              ),
+              child: msg.type == MessageType.poll
+                  ? _buildPollBubble(msg, pollTheme, isMe)
+                  : _buildTextBubble(msg, textColor, nameColor, isMe),
+            ),
+          ),
+          if (isMe) const SizedBox(width: 20),
         ],
       ),
     );
   }
 
-  Widget _buildLightPage() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildTextBubble(
+      ChatMessage msg, Color textColor, Color nameColor, bool isMe) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isMe)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                msg.senderName,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: nameColor,
+                ),
+              ),
+            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  msg.text!,
+                  style: TextStyle(fontSize: 15, color: textColor),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                msg.time,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: textColor.withValues(alpha: 0.5),
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 2),
+                Icon(Icons.done_all, size: 14,
+                    color: isDark ? const Color(0xFF53BDEB) : const Color(0xFF4FC3F7)),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPollBubble(ChatMessage msg, PollTheme pollTheme, bool isMe) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('Single Choice Poll', Colors.black87),
         ChatPollWidget(
-          dataSource: _lightAdapter,
-          pollId: 'poll_1',
-          userId: 'user_demo',
-          theme: PollTheme.light(),
+          dataSource: _adapter,
+          pollId: msg.pollId!,
+          userId: 'user_me',
+          theme: pollTheme.copyWith(
+            containerBorderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(12),
+              topRight: const Radius.circular(12),
+              bottomLeft: Radius.circular(isMe ? 12 : 2),
+              bottomRight: Radius.circular(isMe ? 2 : 12),
+            ),
+          ),
         ),
-        const SizedBox(height: 20),
-        _sectionLabel('Multi Choice Poll', Colors.black87),
-        ChatPollWidget(
-          dataSource: _lightAdapter,
-          pollId: 'poll_2',
-          userId: 'user_demo',
-          theme: PollTheme.light(),
+        Padding(
+          padding: const EdgeInsets.only(right: 12, bottom: 4, top: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Spacer(),
+              Text(
+                msg.time,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
-        _sectionLabel('Expired Poll', Colors.black87),
-        ChatPollWidget(
-          dataSource: _lightAdapter,
-          pollId: 'poll_3',
-          userId: 'user_demo',
-          theme: PollTheme.light(),
-        ),
-        const SizedBox(height: 32),
       ],
     );
   }
 
-  Widget _buildDarkPage() {
+  Widget _buildInputBar(BuildContext context) {
     return Container(
-      color: const Color(0xFF121212),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _sectionLabel('Single Choice Poll', Colors.white70),
-          ChatPollWidget(
-            dataSource: _darkAdapter,
-            pollId: 'poll_1',
-            userId: 'user_dark',
-            theme: PollTheme.dark(),
-          ),
-          const SizedBox(height: 20),
-          _sectionLabel('Voted Poll (with results)', Colors.white70),
-          ChatPollWidget(
-            dataSource: _votedAdapter,
-            pollId: 'poll_4',
-            userId: 'user_demo',
-            theme: PollTheme.dark(),
-          ),
-          const SizedBox(height: 20),
-          _sectionLabel('Expired Poll', Colors.white70),
-          ChatPollWidget(
-            dataSource: _darkAdapter,
-            pollId: 'poll_3',
-            userId: 'user_dark',
-            theme: PollTheme.dark(),
-          ),
-          const SizedBox(height: 32),
-        ],
+      color: isDark ? const Color(0xFF1F2C34) : Colors.white,
+      padding: EdgeInsets.only(
+        left: 8,
+        right: 8,
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
-    );
-  }
-
-  Widget _buildGreenPage() {
-    return Container(
-      color: const Color(0xFFE8F5E9),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Row(
         children: [
-          _sectionLabel('Single Choice', const Color(0xFF1B5E20)),
-          ChatPollWidget(
-            dataSource: _greenAdapter,
-            pollId: 'poll_1',
-            userId: 'user_green',
-            theme: _greenTheme,
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2A3942) : const Color(0xFFF0F0F0),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.emoji_emotions_outlined, color: Colors.grey[500], size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Type a message',
+                        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                  Icon(Icons.attach_file, color: Colors.grey[500], size: 22),
+                  const SizedBox(width: 8),
+                  Icon(Icons.camera_alt, color: Colors.grey[500], size: 22),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
-          _sectionLabel('Multi Choice', const Color(0xFF1B5E20)),
-          ChatPollWidget(
-            dataSource: _greenAdapter,
-            pollId: 'poll_2',
-            userId: 'user_green',
-            theme: _greenTheme,
+          const SizedBox(width: 6),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: const Color(0xFF00A884),
+            child: const Icon(Icons.mic, color: Colors.white, size: 22),
           ),
-          const SizedBox(height: 20),
-          _sectionLabel('Expired', const Color(0xFF1B5E20)),
-          ChatPollWidget(
-            dataSource: _greenAdapter,
-            pollId: 'poll_3',
-            userId: 'user_green',
-            theme: _greenTheme,
-          ),
-          const SizedBox(height: 32),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPurplePage() {
-    return Container(
-      color: const Color(0xFFF3E5F5),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _sectionLabel('Single Choice', const Color(0xFF4A148C)),
-          ChatPollWidget(
-            dataSource: _purpleAdapter,
-            pollId: 'poll_1',
-            userId: 'user_purple',
-            theme: _purpleTheme,
-          ),
-          const SizedBox(height: 20),
-          _sectionLabel('Multi Choice', const Color(0xFF4A148C)),
-          ChatPollWidget(
-            dataSource: _purpleAdapter,
-            pollId: 'poll_2',
-            userId: 'user_purple',
-            theme: _purpleTheme,
-          ),
-          const SizedBox(height: 20),
-          _sectionLabel('Expired', const Color(0xFF4A148C)),
-          ChatPollWidget(
-            dataSource: _purpleAdapter,
-            pollId: 'poll_3',
-            userId: 'user_purple',
-            theme: _purpleTheme,
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-          color: color,
-        ),
       ),
     );
   }

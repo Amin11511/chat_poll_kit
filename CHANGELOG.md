@@ -1,3 +1,9 @@
+## 1.0.2
+
+* Redesign example app as a realistic chat interface (WhatsApp-like)
+* Polls now shown embedded inside chat bubbles with avatars, timestamps, and read receipts
+* Updated screenshots to show chat-style usage (Light & Dark themes)
+
 ## 1.0.1
 
 * Add screenshots to README (Light, Dark, Green, Purple themes)

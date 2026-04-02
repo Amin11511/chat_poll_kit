@@ -4,9 +4,9 @@ A complete poll system for Flutter chat applications — with state management, 
 
 ## Screenshots
 
-| Light Theme | Dark Theme | Green Custom | Purple Custom |
-|:-----------:|:----------:|:------------:|:-------------:|
-| ![Light](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/1_light_theme.png) | ![Dark](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/2_dark_theme.png) | ![Green](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/3_green_theme.png) | ![Purple](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/4_purple_theme.png) |
+| Light Theme | Dark Theme |
+|:-----------:|:----------:|
+| ![Light](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/1_light_theme.png) | ![Dark](https://raw.githubusercontent.com/Amin11511/chat_poll_kit/main/screenshots/2_dark_theme.png) |
 
 ## Features
 
